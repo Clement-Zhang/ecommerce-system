@@ -1,0 +1,37 @@
+<nav class="navbar navbar-dark bg-dark">
+    <a class="navbar-brand" href="/">
+        Home
+    </a>
+    <a class="nav-item nav-link" href="/products">
+        Products
+    </a>
+    {% if "id" in session %}
+    <a class="nav-item nav-link" href="/account">
+        Account
+    </a>
+    <a class="nav-item nav-link" href="/logout_backend">
+        Logout
+    </a>
+    {% if "type" in session and session["type"] == "customer" %}
+    <a class="nav-item nav-link" href="/cart">
+        Cart
+    </a>
+    <a class="nav-item nav-link" href="/orders">
+        Orders
+    </a>
+    {% endif %}
+    {% else %}
+    <a class="nav-item nav-link" href="/login">
+        Login
+    </a>
+    <a class="nav-item nav-link" href="/register">
+        Register
+    </a>
+    {% endif %}
+    <a class="nav-item nav-link" href="/reset">
+        Wipe State
+    </a>
+    <a class="nav-item nav-link" href="/set">
+        Set Test State
+    </a>
+</nav>

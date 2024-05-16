@@ -1,0 +1,98 @@
+{% extends "components/main.html" %}
+
+{% block contents %}
+<h1>
+    {{title}}
+</h1>
+<form action="{{to}}" method="post">
+    <div class="form-group">
+        <label for="username">
+            Username
+        </label>
+        <input type="text" class="form-control" id="username"
+            name="username">
+    </div>
+    {% if title == "Reset Password" %}
+    <div class="form-group">
+        <label for="email">
+            Email
+        </label>
+        <input type="email" class="form-control" id="email"
+            name="email">
+    </div>
+    <div class="form-group">
+        <label for="password">
+            New Password
+        </label>
+        <input type="password" class="form-control" id="password"
+            name="password">
+    </div>
+    {% else %}
+    <div class="form-group">
+        <label for="password">
+            Password
+        </label>
+        <input type="password" class="form-control" id="password"
+            name="password">
+    </div>
+    {% endif %}
+    {% if title == "Register" %}
+    <div class="form-group">
+        <label for="fname">
+            First Name
+        </label>
+        <input type="text" class="form-control" id="fname"
+            name="fname">
+    </div>
+    <div class="form-group">
+        <label for="lname">
+            Last Name
+        </label>
+        <input type="text" class="form-control" id="lname"
+            name="lname">
+    </div>
+    <div class="form-group">
+        <label for="email">
+            Email
+        </label>
+        <input type="email" class="form-control" id="email"
+            name="email">
+    </div>
+    <div class="form-group">
+        <label for="phone">
+            Phone
+        </label>
+        <input type="text" class="form-control" id="phone"
+            name="phone">
+    </div>
+    {% endif %}
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">
+            Submit
+        </button>
+        {% if title == "Login" %}
+        <button type="button" class="btn btn-danger" onclick="window.location.href='/reset_password'">
+            Reset Password
+        </button>
+        {% endif %}
+    </div>
+</form>
+{% if message is defined %}
+<p>
+    {{message}}
+</p>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+    $(document).ready(function () {
+        $(".btn").click(function () {
+            var phone = $("#phone").val();
+            if (phone.length != 10 || !/^\d+$/.test(phone)) {
+                alert("Phone number must be 10 digits.");
+                event.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "components/main.html" %}
+{% block contents %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>
+                Cart
+            </h1>
+            <form action="/cart" method="post">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>
+                                Product
+                            </th>
+                            <th>
+                                Price
+                            </th>
+                            <th>
+                                Quantity
+                            </th>
+                            <th>
+                                Total
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>
+                                {{product["name"]}}
+                            </td>
+                            <td>
+                                {{product["price"]}}
+                            </td>
+                            <td>
+                                {{product["quantity"]}}
+                            </td>
+                            <td>
+                                {{product["price"] * product["quantity"]}}
+                            </td>
+                            <td>
+                                <input type="checkbox" name="remove" value="{{product['id']}}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tbody>
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>
+                                {{total}}
+                            </td>
+                        </tr>
+                        {% if products|length > 0 %}
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>
+                                <a href="/checkout" class="btn btn-primary">
+                                    Checkout
+                                </a>
+                            </td>
+                            <td>
+                                <button type="submit" class="btn btn-danger">
+                                    Remove Selected Products
+                                </button>
+                            </td>
+                        </tr>
+                        {% endif %}
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

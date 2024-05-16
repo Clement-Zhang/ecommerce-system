@@ -1,0 +1,601 @@
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 1;
+
+DROP TABLE IF EXISTS order_product;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS cart_product;
+DROP TABLE IF EXISTS cart;
+DROP TABLE IF EXISTS product;
+DROP TABLE IF EXISTS account;
+
+CREATE TABLE account (
+    id INT NOT NULL AUTO_INCREMENT,
+    username VARCHAR(63) NOT NULL,
+    password VARCHAR(255),
+    fname VARCHAR(31) NOT NULL,
+    lname VARCHAR(31) NOT NULL,
+    email VARCHAR(63) NOT NULL,
+    phone VARCHAR(10) NOT NULL,
+    type ENUM('customer', 'admin') DEFAULT 'customer',
+    PRIMARY KEY (id),
+    CONSTRAINT uk_username UNIQUE (username),
+    CONSTRAINT uk_email UNIQUE (email)
+) DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+CREATE TABLE product (
+    id INT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(63) NOT NULL,
+    price FLOAT NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    img_path VARCHAR(15) NOT NULL,
+    quantity INT DEFAULT 0,
+    PRIMARY KEY (id),
+    CHECK (quantity >= 0)
+) DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+CREATE TABLE cart (
+    account_id INT,
+    PRIMARY KEY (account_id),
+    CONSTRAINT fk_cart_account FOREIGN KEY (account_id) REFERENCES account(id)
+) DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+CREATE TABLE cart_product (
+    cart_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    CHECK (quantity > 0),
+    CONSTRAINT pk_cartproduct PRIMARY KEY (cart_id, product_id),
+    CONSTRAINT fk_cartproduct_cart FOREIGN KEY (cart_id) REFERENCES cart(account_id),
+    CONSTRAINT fk_cartproduct_product FOREIGN KEY (product_id) REFERENCES product(id)
+) DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+CREATE TABLE orders (
+    id INT NOT NULL AUTO_INCREMENT,
+    account_id INT NOT NULL,
+    total_price FLOAT NOT NULL,
+    status ENUM('package', 'ship', 'arrive', 'cancel') DEFAULT 'package',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    closed_at TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (id),
+    CHECK (total_price >= 0),
+    CONSTRAINT fk_orders_account FOREIGN KEY (account_id) REFERENCES account(id)
+) DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+CREATE TABLE order_product (
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    price FLOAT NOT NULL,
+    quantity INT NOT NULL,
+    CHECK (quantity > 0),
+    CONSTRAINT pk_orderproduct PRIMARY KEY (order_id, product_id),
+    CONSTRAINT fk_orderproduct_orders FOREIGN KEY (order_id) REFERENCES orders(id),
+    CONSTRAINT fk_orderproduct_product FOREIGN KEY (product_id) REFERENCES product(id)
+) DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+-- account exclusive operations-----------------------------------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS CreateCustomer;
+delimiter |
+CREATE PROCEDURE CreateCustomer
+(
+    IN username VARCHAR(63),
+    IN password VARCHAR(255),
+    IN fname VARCHAR(31),
+    IN lname VARCHAR(31),
+    IN email VARCHAR(63),
+    IN phone VARCHAR(12)
+)
+BEGIN
+    INSERT INTO account (username, password, fname, lname, email, phone) VALUES (username, password, fname, lname, email, phone);
+    INSERT INTO cart VALUES (LAST_INSERT_ID());
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS CreateAdmin;
+delimiter |
+CREATE PROCEDURE CreateAdmin
+(
+    IN username VARCHAR(63),
+    IN password VARCHAR(255),
+    IN fname VARCHAR(31),
+    IN lname VARCHAR(31),
+    IN email VARCHAR(63),
+    IN phone VARCHAR(12)
+)
+BEGIN
+    INSERT INTO account (username, password, fname, lname, email, phone, type) VALUES (username, password, fname, lname, email, phone, 'admin');
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadAccountById;
+delimiter |
+CREATE PROCEDURE ReadAccountById
+(
+    IN account_id INT
+)
+BEGIN
+    SELECT *
+    FROM account AS a
+    WHERE a.id = account_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadAccountByUsernameEmail;
+delimiter |
+CREATE PROCEDURE ReadAccountByUsernameEmail
+(
+    IN username VARCHAR(63),
+    IN email VARCHAR(63)
+)
+BEGIN
+    SELECT *
+    FROM account AS a
+    WHERE a.username = username AND a.email = email;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadAccountByUsernamePassword;
+delimiter |
+CREATE PROCEDURE ReadAccountByUsernamePassword
+(
+    IN username VARCHAR(63),
+    IN password VARCHAR(255)
+)
+BEGIN
+    SELECT *
+    FROM account AS a
+    WHERE a.username = username AND a.password = password;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ValidateAccount;
+delimiter |
+CREATE PROCEDURE ValidateAccount
+(
+    IN username VARCHAR(63),
+    IN password VARCHAR(255)
+)
+BEGIN
+    SELECT EXISTS(
+        SELECT *
+        FROM account AS a
+        WHERE a.username = username AND a.password = password
+    ) AS e;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS CheckAccountByUsernameEmail;
+delimiter |
+CREATE PROCEDURE CheckAccountByUsernameEmail
+(
+    IN username VARCHAR(63),
+    IN email VARCHAR(63)
+)
+BEGIN
+    SELECT EXISTS(
+        SELECT *
+        FROM account AS a
+        WHERE a.username = username AND a.email = email
+    ) AS e;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS CheckAccountById;
+delimiter |
+CREATE PROCEDURE CheckAccountById
+(
+    IN account_id INT
+)
+BEGIN
+    SELECT EXISTS(
+        SELECT *
+        FROM account AS a
+        WHERE a.id = account_id
+    ) AS e;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS UpdatePassword;
+delimiter |
+CREATE PROCEDURE UpdatePassword
+(
+    IN account_id INT,
+    IN password VARCHAR(255)
+)
+BEGIN
+    UPDATE account AS a
+    SET a.password = password
+    WHERE a.id = account_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS UpdateFname;
+delimiter |
+CREATE PROCEDURE UpdateFname
+(
+    IN account_id INT,
+    IN fname VARCHAR(31)
+)
+BEGIN
+    UPDATE account AS a
+    SET a.fname = fname
+    WHERE a.id = account_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS UpdateLname;
+delimiter |
+CREATE PROCEDURE UpdateLname
+(
+    IN account_id INT,
+    IN lname VARCHAR(31)
+)
+BEGIN
+    UPDATE account AS a
+    SET a.lname = lname
+    WHERE a.id = account_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS UpdateEmail;
+delimiter |
+CREATE PROCEDURE UpdateEmail
+(
+    IN account_id INT,
+    IN email VARCHAR(63)
+)
+BEGIN
+    UPDATE account AS a
+    SET a.email = email
+    WHERE a.id = account_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS UpdatePhone;
+delimiter |
+CREATE PROCEDURE UpdatePhone
+(
+    IN account_id INT,
+    IN phone VARCHAR(63)
+)
+BEGIN
+    UPDATE account AS a
+    SET a.phone = phone
+    WHERE a.id = account_id;
+END|
+delimiter ;
+
+-- cart exclusive operations-----------------------------------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS CreateCartProduct;
+delimiter |
+CREATE PROCEDURE CreateCartProduct
+(
+    IN account_id INT,
+    IN product_id INT,
+    IN quantity FLOAT
+)
+BEGIN
+    INSERT INTO cart_product VALUES (account_id, product_id, quantity);
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadCart;
+delimiter |
+CREATE PROCEDURE ReadCart
+(
+    IN account_id INT
+)
+BEGIN
+    SELECT c.*
+    FROM cart AS c
+    WHERE c.account_id = account_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadCartProductsByIds;
+delimiter |
+CREATE PROCEDURE ReadCartProductsByIds
+(
+    IN account_id INT,
+    IN product_ids JSON
+)
+BEGIN
+    SELECT p.id, p.name, p.price, cp.quantity
+    FROM cart_product AS cp, product as p
+    WHERE cp.cart_id = account_id AND cp.product_id = p.id AND JSON_CONTAINS(product_ids, p.id);
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadCartProducts;
+delimiter |
+CREATE PROCEDURE ReadCartProducts
+(
+    IN account_id INT
+)
+BEGIN
+    SELECT p.id, p.name, p.price, cp.quantity
+    FROM cart_product AS cp, product as p
+    WHERE cp.cart_id = account_id AND cp.product_id = p.id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadCartTotalPrice;
+delimiter |
+CREATE PROCEDURE ReadCartTotalPrice
+(
+    IN account_id INT
+)
+BEGIN
+    SELECT SUM(p.price * cp.quantity) AS total_price
+    FROM cart_product AS cp, product as p
+    WHERE cp.cart_id = account_id AND cp.product_id = p.id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS CheckCart;
+delimiter |
+CREATE PROCEDURE CheckCart
+(
+    IN account_id INT
+)
+BEGIN
+    SELECT EXISTS(
+        SELECT *
+        FROM cart AS c
+        WHERE c.account_id = account_id
+    ) AS e;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS CheckCartProduct;
+delimiter |
+CREATE PROCEDURE CheckCartProduct
+(
+    IN account_id INT,
+    IN product_id INT
+)
+BEGIN
+    SELECT EXISTS(
+        SELECT *
+        FROM cart_product AS cp
+        WHERE cp.cart_id = account_id AND cp.product_id = product_id
+    ) AS e;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS UpdateCartProduct;
+delimiter |
+CREATE PROCEDURE UpdateCartProduct
+(
+    IN account_id INT,
+    IN product_id INT,
+    IN quantity INT
+)
+BEGIN
+    UPDATE cart_product AS cp
+    SET cp.quantity = quantity
+    WHERE cp.cart_id = account_id AND cp.product_id = product_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS DeleteAllCartProducts;
+delimiter |
+CREATE PROCEDURE DeleteAllCartProducts
+(
+    IN account_id INT
+)
+BEGIN
+    DELETE
+    FROM cart_product
+    WHERE cart_product.cart_id = account_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS DeleteCartProducts;
+delimiter |
+CREATE PROCEDURE DeleteCartProducts
+(
+    IN account_id INT,
+    IN product_ids JSON
+)
+BEGIN
+    DELETE cp.*
+    FROM cart_product AS cp
+    WHERE cp.cart_id = account_id AND JSON_CONTAINS(product_ids, cp.product_id);
+END|
+delimiter ;
+
+-- product exclusive operations-----------------------------------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS CreateProduct;
+delimiter |
+CREATE PROCEDURE CreateProduct
+(
+    IN name VARCHAR(63),
+    IN price FLOAT,
+    IN description VARCHAR(255),
+    IN img_path VARCHAR(15),
+    IN quantity INT
+)
+BEGIN
+    INSERT INTO product (name, price, description, img_path, quantity) VALUES (name, price, description, img_path, quantity);
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadProducts;
+delimiter |
+CREATE PROCEDURE ReadProducts()
+BEGIN
+    SELECT *
+    FROM product;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadProductsByIds;
+delimiter |
+CREATE PROCEDURE ReadProductsByIds
+(
+    IN product_ids JSON
+)
+BEGIN
+    SELECT *
+    FROM product
+    WHERE JSON_CONTAINS(product_ids, id);
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS CheckProduct;
+delimiter |
+CREATE PROCEDURE CheckProduct
+(
+    IN product_id INT
+)
+BEGIN
+    SELECT EXISTS(
+        SELECT *
+        FROM product
+        WHERE id = product_id
+    ) AS e;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS RestockProduct;
+delimiter |
+CREATE PROCEDURE RestockProduct
+(
+    IN product_id INT,
+    IN quantity INT
+)
+BEGIN
+    UPDATE product
+    SET product.quantity = quantity
+    WHERE product.product_id = product_id;
+END|
+delimiter ;
+
+-- order exclusive operations-----------------------------------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS CreateOrder;
+delimiter |
+CREATE PROCEDURE CreateOrder
+(
+    IN account_id INT,
+    IN total_price FLOAT
+)
+BEGIN
+    INSERT INTO orders (account_id, total_price) VALUES (account_id, total_price);
+    SELECT LAST_INSERT_ID() AS id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS CreateOrderProduct;
+delimiter |
+CREATE PROCEDURE CreateOrderProduct
+(
+    IN order_id INT,
+    IN product_id INT,
+    IN price FLOAT,
+    IN quantity INT
+)
+BEGIN
+    INSERT INTO order_product VALUES (order_id, product_id, price, quantity);
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadOrder;
+delimiter |
+CREATE PROCEDURE ReadOrder
+(
+    IN order_id INT
+)
+BEGIN
+    SELECT *
+    FROM orders AS o
+    WHERE o.id = order_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadOrders;
+delimiter |
+CREATE PROCEDURE ReadOrders
+(
+    IN account_id INT
+)
+BEGIN
+    SELECT *
+    FROM orders AS o
+    WHERE o.account_id = account_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadOrderProducts;
+delimiter |
+CREATE PROCEDURE ReadOrderProducts
+(
+    IN order_id INT
+)
+BEGIN
+    SELECT p.id, p.name, op.price, op.quantity
+    FROM orders AS o, order_product AS op, product as p
+    WHERE o.id = order_id AND o.id = op.order_id AND op.product_id = p.id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS ReadOrderTotalPrice;
+delimiter |
+CREATE PROCEDURE ReadOrderTotalPrice
+(
+    IN order_id INT
+)
+BEGIN
+    SELECT total_price
+    FROM orders AS o
+    WHERE o.id = order_id;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS CheckOrder;
+delimiter |
+CREATE PROCEDURE CheckOrder
+(
+    IN order_id INT
+)
+BEGIN
+    SELECT EXISTS(
+        SELECT *
+        FROM orders AS o
+        WHERE o.id = order_id
+    ) AS e;
+END|
+delimiter ;
+
+DROP PROCEDURE IF EXISTS CancelOrders;
+delimiter |
+CREATE PROCEDURE CancelOrders
+(
+    IN order_ids JSON
+)
+BEGIN
+    UPDATE orders
+    SET status = 'cancel'
+    WHERE JSON_CONTAINS(order_ids, id);
+END|
+delimiter ;
+
+-- interactive operations-----------------------------------------------------------------------------------
+
+-- operations for testing-----------------------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS Wipe;
+delimiter |
+CREATE PROCEDURE Wipe ()
+BEGIN
+    DELETE FROM order_product;
+    DELETE FROM orders;
+    DELETE FROM cart_product;
+    DELETE FROM cart;
+    DELETE FROM product;
+    DELETE FROM account;
+END|
+delimiter ;

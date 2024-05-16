@@ -1,0 +1,64 @@
+{% extends "components/main.html" %}
+{% block contents %}
+{% if products|length > 0 %}
+<form action="/add_to_cart" method="post">
+    <div class="row">
+        {% for product in products %}
+        <div class="col-4">
+            <div class="card card-body">
+                <img
+                    src="{{url_for('static', filename='img/products/'+product.img_path)}}"
+                    class="card-img-top">
+                <h5 class="card-title">
+                    Name: {{product["name"]}}
+                </h5>
+                <p class="card-text">
+                    Description: {{product["description"]}}
+                </p>
+                <p class="card-text">
+                    Price: {{product["price"]}}
+                </p>
+                <p class="card-text">
+                    In stock: {{product["quantity"]}}
+                </p>
+                {% if cart_mapping is not none %}
+                {% if product['id'] in cart_mapping %}
+                <div class="form-row form-group">
+                    <input type="number" class="form-control col"
+                        name="quantities" min="0"
+                        max="{{product['quantity']}}" value="{{cart_mapping[product['id']]}}">
+                    <input type="hidden" name="product_ids"
+                        value="{{product['id']}}">
+                </div>
+                {% else %}
+                <div class="form-row form-group">
+                    <input type="number" class="form-control col"
+                        name="quantities" min="0"
+                        max="{{product['quantity']}}" value="0">
+                    <input type="hidden" name="product_ids"
+                        value="{{product['id']}}">
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% if cart_mapping is not none %}
+    {% if cart_mapping|length == 0 %}
+    <button type="submit" class="btn btn-primary">
+        Add to Cart
+    </button>
+    {% else %}
+    <button type="submit" class="btn btn-primary">
+        Update Cart
+    </button>
+    {% endif %}
+    {% endif %}
+</form>
+{% else %}
+<h1>
+    No products
+</h1>
+{% endif %}
+{% endblock %}
